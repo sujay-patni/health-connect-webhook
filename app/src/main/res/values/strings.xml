@@ -154,6 +154,8 @@
     <string name="config_sync_mode_interval">Interval</string>
     <string name="config_sync_mode_scheduled">Scheduled</string>
     <string name="config_sync_interval_label">Interval (Minutes)</string>
+    <string name="config_interval_full_lookback_title">Send full 48-hour window</string>
+    <string name="config_interval_full_lookback_desc">Interval sync will resend all enabled data from the last 48 hours instead of only records since the previous sync.</string>
     <string name="config_action_update_interval">Update Interval</string>
     <string name="config_toast_interval_saved">Interval saved</string>
     <string name="config_toast_min_interval">Min 15 minutes</string>
@@ -217,6 +219,5 @@
     <string name="nav_logs">Logs</string>
     <string name="nav_about">About</string>
 </resources>
-
 
 

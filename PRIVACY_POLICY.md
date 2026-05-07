@@ -81,7 +81,7 @@ This app is not directed at children under the age of 13 and does not knowingly 
 ## Open Source
 
 The full source code of this app is available on GitHub:
-[https://github.com/mcnaveen/health-connect-webhook](https://github.com/mcnaveen/health-connect-webhook)
+[https://github.com/sujay-patni/health-connect-webhook](https://github.com/sujay-patni/health-connect-webhook)
 
 You can verify exactly what the app does with your data by reviewing the source code.
 

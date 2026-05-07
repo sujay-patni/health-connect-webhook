@@ -33,7 +33,7 @@ class ScheduledSyncReceiver : BroadcastReceiver() {
                 CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
                     try {
                         val syncManager = SyncManager(context)
-                        syncManager.performSync()
+                        syncManager.performSync(trigger = SyncTrigger.SCHEDULED)
                         
                         // Reschedule the alarm for the next day
                         if (scheduleId != null) {

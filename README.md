@@ -20,7 +20,7 @@ HC Webhook connects Google Health Connect to your webhook infrastructure. Health
 
 1. **Health Apps** (Google Fit, Samsung Health, Fitbit, etc.) sync data to **Health Connect**
 2. **Health Connect** aggregates all health data into a unified API
-3. **HC Webhook** reads data from Health Connect using your selected sync mode (interval or scheduled)
+3. **HC Webhook** reads data from Health Connect using your selected sync mode (manual, interval, or scheduled)
 4. **HC Webhook** sends the data to your configured **webhook URLs**
 5. Your **custom services** receive and process the health data
 
@@ -50,12 +50,12 @@ Health Connect aggregates data from these popular health and fitness apps:
 
 ## Features
 
-- 🔄 **Flexible Background Sync** - Choose between interval-based sync (WorkManager) or fixed-time scheduled syncs (AlarmManager)
+- 🔄 **Flexible Background Sync** - Choose between interval-based sync (WorkManager) or fixed-time scheduled syncs (AlarmManager), with an optional full 48-hour resend mode for idempotent receivers
 - 🎯 **Selective Data Types** - Choose which health data types to sync (23 supported types)
-- 🔗 **Multiple Webhooks** - Send data to multiple webhook URLs simultaneously
+- 🔗 **Multiple Webhooks** - Send each payload to every configured webhook URL
 - 📊 **Manual Sync** - Trigger immediate data synchronization on demand
 - 🌍 **Multi-language Support** - Fully localized in 10 languages with manual override support
-- 📝 **Webhook Logs** - View detailed logs of all webhook requests and responses
+- 📝 **Webhook Logs** - View status codes, errors, data types, and record counts for webhook requests
 - 🔐 **Permission Management** - Granular Health Connect permission handling
 - 💾 **Settings Backup** - Export/import webhook configs, data type selections, and sync schedule
 - 🎨 **Modern UI** - Built with Jetpack Compose and Material 3 design
@@ -120,7 +120,7 @@ The app supports reading and syncing the following health data types from Health
 1. Clone this repository:
 
 ```bash
-git clone https://github.com/mcnaveen/health-connect-webhook
+git clone https://github.com/sujay-patni/health-connect-webhook
 cd health-connect-webhook
 ```
 
@@ -148,7 +148,7 @@ You can easily install and update **HC Webhook** using [Obtainium](https://githu
 
 1.  Install **Obtainium** on your Android device.
 2.  Tap **"Add App"**.
-3.  Enter the repository URL: `https://github.com/mcnaveen/health-connect-webhook`
+3.  Enter the repository URL: `https://github.com/sujay-patni/health-connect-webhook`
 4.  Allow Obtainium to scan for releases.
 5.  Tap **Install** / **Update**.
 
@@ -156,10 +156,10 @@ You can easily install and update **HC Webhook** using [Obtainium](https://githu
 ### Building the APK
 
 ```bash
-./gradlew assembleDebug
+./gradlew assembleFossDebug
 ```
 
-The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`
+The APK will be generated at: `app/build/outputs/apk/foss/debug/app-foss-debug.apk`
 
 ## Usage
 
@@ -178,6 +178,7 @@ The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`
    - Select which data types to sync
    - Choose sync mode:
      - **Interval Mode**: set your preferred sync interval (minimum 15 minutes)
+       - Enable **Send full 48-hour window** when your receiver stores daily totals by overwriting the same day, such as Routine Manager.
      - **Scheduled Mode**: configure one or more fixed times of day
 
 4. **Save Configuration**
@@ -204,6 +205,8 @@ The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`
 - **Interval Mode** (WorkManager)
   - Minimum: 15 minutes
   - Recommended: 30-60 minutes for most use cases
+  - Default behavior sends records newer than the last successful sync timestamp.
+  - Optional **Send full 48-hour window** disables the last-sync filter for interval runs and resends the complete rolling 48-hour read window. This is useful for receivers that recalculate and overwrite daily totals.
 - **Scheduled Mode** (AlarmManager)
   - Sync at specific times of day (default: Morning 08:00 and Evening 21:00)
   - Add, remove, and toggle individual schedule entries
@@ -211,12 +214,66 @@ The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`
 
 ### Webhook Format
 
-The app sends health data to your webhooks in JSON format. Each webhook request includes:
+The app sends health data to your webhooks in JSON format. Only arrays that contain records are included. Each request includes:
 
-- Timestamp of the sync
-- Data type information
-- Health data records (filtered to only include new data since last sync)
-- Metadata about the sync operation
+- `timestamp`: device sync time in ISO-8601 UTC
+- `app_version`: app version string
+- `sync`: metadata describing the trigger and range behavior
+- Health data arrays such as `steps`, `sleep`, `heart_rate`, `distance`, and `active_calories`
+
+Example payload:
+
+```json
+{
+  "timestamp": "2026-05-07T18:30:00Z",
+  "app_version": "1.8.3",
+  "sync": {
+    "trigger": "interval",
+    "explicit_range": false,
+    "interval_full_lookback": true,
+    "used_last_sync_filter": false
+  },
+  "steps": [
+    {
+      "count": 312,
+      "start_time": "2026-05-07T10:00:00Z",
+      "end_time": "2026-05-07T10:05:00Z"
+    }
+  ],
+  "sleep": [
+    {
+      "session_end_time": "2026-05-07T01:30:00Z",
+      "duration_seconds": 28140,
+      "stages": []
+    }
+  ],
+  "distance": [
+    {
+      "meters": 520.4,
+      "start_time": "2026-05-07T10:00:00Z",
+      "end_time": "2026-05-07T10:15:00Z"
+    }
+  ],
+  "active_calories": [
+    {
+      "calories": 42.5,
+      "start_time": "2026-05-07T10:00:00Z",
+      "end_time": "2026-05-07T10:15:00Z"
+    }
+  ]
+}
+```
+
+Sync metadata fields:
+
+- `trigger`: `manual`, `interval`, or `scheduled`
+- `explicit_range`: `true` when a manual date/time range was selected
+- `time_range_days`: included when manual sync uses a preset day range
+- `start` / `end`: included when manual sync uses a custom range
+- `interval_full_lookback`: whether the interval full-window option is enabled
+- `used_last_sync_filter`: whether Health Connect records were filtered by the last successful sync timestamp
+
+Webhook delivery attempts every configured URL. Successful and failed responses are written to the in-app logs with status code, error, data type, and record count metadata.
 
 > **Note**: Webhook delivery includes short retry handling (up to 3 attempts with exponential backoff). If delivery still fails, data is retried on the next successful sync trigger (manual, interval, or scheduled).
 

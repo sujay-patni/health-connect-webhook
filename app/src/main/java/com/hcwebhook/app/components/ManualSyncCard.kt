@@ -13,6 +13,7 @@ import com.hcwebhook.app.HealthConnectManager
 import com.hcwebhook.app.PreferencesManager
 import com.hcwebhook.app.SyncManager
 import com.hcwebhook.app.SyncResult
+import com.hcwebhook.app.SyncTrigger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -116,10 +117,10 @@ fun ManualSyncCard(onSyncCompleted: () -> Unit = {}) {
                                     }
 
                                     syncMessage = context.getString(R.string.manual_sync_progress, startDate.toString(), endDate.toString())
-                                    syncManager.performSync(start = startInstant, end = endInstant)
+                                    syncManager.performSync(start = startInstant, end = endInstant, trigger = SyncTrigger.MANUAL)
                                 } else {
                                     // sync the last N days, or from the last sync
-                                    syncManager.performSync(timeRangeSelection)
+                                    syncManager.performSync(timeRangeSelection, trigger = SyncTrigger.MANUAL)
                                 }
 
                                 when {

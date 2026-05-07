@@ -26,6 +26,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_WEBHOOK_LOGS = "webhook_logs"
         private const val KEY_LAST_SYNC_TIME = "last_sync_time"
         private const val KEY_LAST_SYNC_SUMMARY = "last_sync_summary"
+        private const val KEY_INTERVAL_FULL_LOOKBACK = "interval_full_lookback"
         private const val DEFAULT_SYNC_INTERVAL_MINUTES = 60
         private const val MAX_LOGS = 100
         private const val KEY_SCHEDULED_SYNC_ENABLED = "scheduled_sync_enabled"
@@ -64,6 +65,14 @@ class PreferencesManager(context: Context) {
 
     fun setSyncIntervalMinutes(minutes: Int) {
         prefs.edit().putInt(KEY_SYNC_INTERVAL_MINUTES, minutes).apply()
+    }
+
+    fun getIntervalFullLookback(): Boolean {
+        return prefs.getBoolean(KEY_INTERVAL_FULL_LOOKBACK, false)
+    }
+
+    fun setIntervalFullLookback(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_INTERVAL_FULL_LOOKBACK, enabled).apply()
     }
 
     fun getWebhookUrls(): List<String> {
@@ -282,6 +291,7 @@ class PreferencesManager(context: Context) {
             enabledDataTypes = getEnabledDataTypes().map { it.name },
             syncMode = getSyncMode().name,
             syncIntervalMinutes = getSyncIntervalMinutes(),
+            intervalFullLookback = getIntervalFullLookback(),
             scheduledSyncs = getScheduledSyncs()
         )
     }
@@ -301,6 +311,7 @@ class PreferencesManager(context: Context) {
         setSyncMode(mode)
 
         setSyncIntervalMinutes(export.syncIntervalMinutes)
+        setIntervalFullLookback(export.intervalFullLookback)
         setScheduledSyncs(export.scheduledSyncs)
     }
 }

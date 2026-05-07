@@ -350,7 +350,7 @@ fun AboutScreen(onRestartOnboarding: () -> Unit = {}) {
                             label = stringResource(R.string.about_link_github),
                             icon = Icons.Filled.Code,
                             onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/mcnaveen/health-connect-webhook"))
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sujay-patni/health-connect-webhook"))
                                 context.startActivity(intent)
                             }
                         )

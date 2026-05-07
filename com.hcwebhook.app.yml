@@ -1,8 +1,8 @@
 Categories:
   - Health & Fitness
 License: Apache-2.0
-SourceCode: https://github.com/mcnaveen/health-connect-webhook
-IssueTracker: https://github.com/mcnaveen/health-connect-webhook/issues
+SourceCode: https://github.com/sujay-patni/health-connect-webhook
+IssueTracker: https://github.com/sujay-patni/health-connect-webhook/issues
 
 AutoName: HC Webhook
 Summary: Sync Health Connect data to your custom webhooks
@@ -18,7 +18,7 @@ Description: |-
   * Privacy Focused: No data is sent to third-party services except your configured webhooks
 
 RepoType: git
-Repo: https://github.com/mcnaveen/health-connect-webhook
+Repo: https://github.com/sujay-patni/health-connect-webhook
 
 Builds:
   - versionName: 1.0

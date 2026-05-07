@@ -62,6 +62,7 @@ fun ConfigurationScreen(
 
     var syncMode by remember { mutableStateOf(preferencesManager.getSyncMode()) }
     var syncInterval by remember { mutableStateOf(preferencesManager.getSyncIntervalMinutes().toString()) }
+    var intervalFullLookback by remember { mutableStateOf(preferencesManager.getIntervalFullLookback()) }
     var scheduledSyncs by remember { mutableStateOf(preferencesManager.getScheduledSyncs()) }
     var enabledDataTypes by remember { mutableStateOf(preferencesManager.getEnabledDataTypes()) }
 
@@ -245,6 +246,39 @@ fun ConfigurationScreen(
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            val enabled = !intervalFullLookback
+                                            intervalFullLookback = enabled
+                                            preferencesManager.setIntervalFullLookback(enabled)
+                                        }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = intervalFullLookback,
+                                        onCheckedChange = { enabled ->
+                                            intervalFullLookback = enabled
+                                            preferencesManager.setIntervalFullLookback(enabled)
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            stringResource(R.string.config_interval_full_lookback_title),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            stringResource(R.string.config_interval_full_lookback_desc),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
                                     onClick = {

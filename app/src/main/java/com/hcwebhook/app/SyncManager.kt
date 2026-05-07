@@ -26,7 +26,12 @@ class SyncManager(private val context: Context) {
     private val preferencesManager = PreferencesManager(context)
     private val healthConnectManager = HealthConnectManager(context)
 
-    suspend fun performSync(timeRangeDays: Int? = null, start: Instant? = null, end: Instant? = null): Result<SyncResult> = withContext(Dispatchers.IO) {
+    suspend fun performSync(
+        timeRangeDays: Int? = null,
+        start: Instant? = null,
+        end: Instant? = null,
+        trigger: SyncTrigger = SyncTrigger.MANUAL
+    ): Result<SyncResult> = withContext(Dispatchers.IO) {
         /*
         Supports two modes:
         - timeRangeDays: the amount of days in the past to sync.
@@ -46,10 +51,14 @@ class SyncManager(private val context: Context) {
                 return@withContext Result.failure(Exception("No data types enabled"))
             }
 
-            // Keep incremental sync only for default mode.
-            // Explicit ranges (start/end or timeRangeDays) always perform a full read of that window.
+            // Keep incremental sync only for default mode unless the interval
+            // full-lookback option is enabled. Explicit ranges (start/end or
+            // timeRangeDays) always perform a full read of that window.
             val hasExplicitRange = start != null || end != null || timeRangeDays != null
-            val lastSyncTimestamps = if (!hasExplicitRange) {
+            val intervalFullLookback = preferencesManager.getIntervalFullLookback()
+            val sendFullIntervalWindow = trigger == SyncTrigger.INTERVAL && intervalFullLookback
+            val useLastSyncFilter = !hasExplicitRange && !sendFullIntervalWindow
+            val lastSyncTimestamps = if (useLastSyncFilter) {
                 enabledTypes.associateWith { type ->
                     preferencesManager.getLastSyncTimestamp(type)?.let { Instant.ofEpochMilli(it) }
                 }
@@ -97,7 +106,16 @@ class SyncManager(private val context: Context) {
             )
 
             // Build JSON payload
-            val jsonPayload = buildJsonPayload(healthData)
+            val syncMetadata = SyncMetadata(
+                trigger = trigger,
+                explicitRange = hasExplicitRange,
+                timeRangeDays = timeRangeDays,
+                start = start,
+                end = end,
+                intervalFullLookback = intervalFullLookback,
+                usedLastSyncFilter = useLastSyncFilter
+            )
+            val jsonPayload = buildJsonPayload(healthData, syncMetadata)
 
             // Post to webhook
             val postResult = webhookManager.postData(jsonPayload)
@@ -263,10 +281,19 @@ class SyncManager(private val context: Context) {
         return if (parts.isEmpty()) "No new data" else parts.joinToString(" · ")
     }
 
-    private fun buildJsonPayload(healthData: HealthData): String {
+    private fun buildJsonPayload(healthData: HealthData, syncMetadata: SyncMetadata): String {
         val json = buildJsonObject {
             put("timestamp", Instant.now().toString())
             put("app_version", appVersionName)
+            put("sync", buildJsonObject {
+                put("trigger", syncMetadata.trigger.name.lowercase())
+                put("explicit_range", syncMetadata.explicitRange)
+                syncMetadata.timeRangeDays?.let { put("time_range_days", it) }
+                syncMetadata.start?.let { put("start", it.toString()) }
+                syncMetadata.end?.let { put("end", it.toString()) }
+                put("interval_full_lookback", syncMetadata.intervalFullLookback)
+                put("used_last_sync_filter", syncMetadata.usedLastSyncFilter)
+            })
 
             if (healthData.steps.isNotEmpty()) {
                 putJsonArray("steps") {
@@ -525,3 +552,19 @@ sealed class SyncResult {
     object NoData : SyncResult()
     data class Success(val syncCounts: Map<HealthDataType, Int>) : SyncResult()
 }
+
+enum class SyncTrigger {
+    INTERVAL,
+    SCHEDULED,
+    MANUAL
+}
+
+private data class SyncMetadata(
+    val trigger: SyncTrigger,
+    val explicitRange: Boolean,
+    val timeRangeDays: Int?,
+    val start: Instant?,
+    val end: Instant?,
+    val intervalFullLookback: Boolean,
+    val usedLastSyncFilter: Boolean
+)

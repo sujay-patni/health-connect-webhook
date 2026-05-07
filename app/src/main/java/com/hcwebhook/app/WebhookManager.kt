@@ -43,11 +43,14 @@ class WebhookManager(
         var lastFailure: Throwable? = null
         var retryableFailure: IOException? = null
 
-        // Try posting to all configured webhooks
+        var delivered = false
+
+        // Try posting to all configured webhooks. Do not stop at the first
+        // success; each configured URL should receive the payload.
         for (config in webhookConfigs) {
             val result = postToUrl(config, jsonPayload)
             if (result.isSuccess) {
-                return result // Success if at least one webhook succeeds
+                delivered = true
             } else {
                 val ex = result.exceptionOrNull()
                 lastFailure = ex
@@ -55,6 +58,10 @@ class WebhookManager(
                     retryableFailure = ex
                 }
             }
+        }
+
+        if (delivered) {
+            return Result.success(Unit)
         }
 
         // Prefer a retryable exception so that SyncWorker can schedule a retry
