@@ -68,7 +68,7 @@ class PreferencesManager(context: Context) {
     }
 
     fun getIntervalFullLookback(): Boolean {
-        return prefs.getBoolean(KEY_INTERVAL_FULL_LOOKBACK, false)
+        return prefs.getBoolean(KEY_INTERVAL_FULL_LOOKBACK, true)
     }
 
     fun setIntervalFullLookback(enabled: Boolean) {

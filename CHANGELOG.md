@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.5] - 2026-05-08
+
+### Added
+
+- Webhook payload now includes `sync.data_window_start`, the earliest UTC instant covered by the read. Receivers (e.g. Routine Manager) use it to skip writes for past logical days that fall only partially inside the window — preventing a partial sync (say, at 1 AM local time with a 48 h lookback) from overwriting a previously-complete past day with fragment-only data.
+
+## [1.8.4] - 2026-05-08
+
+### Changed
+
+- **Send full 48-hour window** is now the default for interval syncs. Late-arriving Samsung Health writes (e.g. when watch data lands in Health Connect hours after the activity) are no longer dropped by the per-record `lastSync` filter. Existing installs that previously toggled this setting keep their stored value; new installs and untouched settings now default to on.
+- Removed the in-app filter that dropped Health Connect step records longer than 60 minutes. Receivers (e.g. Routine Manager) now decide what to drop based on duration, which avoids needing an APK rebuild to tune the threshold.
+
 ## [1.8.3] - 2026-05-07
 
 ### Added

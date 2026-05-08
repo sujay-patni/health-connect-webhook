@@ -12,6 +12,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class SyncManager(private val context: Context) {
 
@@ -105,7 +106,16 @@ class SyncManager(private val context: Context) {
                 recordCount = totalRecords
             )
 
-            // Build JSON payload
+            // Build JSON payload. dataWindowStart mirrors the time-range
+            // resolution inside HealthConnectManager.readHealthData so receivers
+            // know the earliest UTC instant covered by this read and can avoid
+            // overwriting past logical days that fall only partially inside it.
+            val effectiveEnd = end ?: Instant.now()
+            val dataWindowStart = when {
+                start != null -> start
+                timeRangeDays != null -> effectiveEnd.minus(timeRangeDays.toLong(), ChronoUnit.DAYS)
+                else -> effectiveEnd.minus(HealthConnectManager.LOOKBACK_HOURS, ChronoUnit.HOURS)
+            }
             val syncMetadata = SyncMetadata(
                 trigger = trigger,
                 explicitRange = hasExplicitRange,
@@ -113,7 +123,8 @@ class SyncManager(private val context: Context) {
                 start = start,
                 end = end,
                 intervalFullLookback = intervalFullLookback,
-                usedLastSyncFilter = useLastSyncFilter
+                usedLastSyncFilter = useLastSyncFilter,
+                dataWindowStart = dataWindowStart
             )
             val jsonPayload = buildJsonPayload(healthData, syncMetadata)
 
@@ -293,6 +304,7 @@ class SyncManager(private val context: Context) {
                 syncMetadata.end?.let { put("end", it.toString()) }
                 put("interval_full_lookback", syncMetadata.intervalFullLookback)
                 put("used_last_sync_filter", syncMetadata.usedLastSyncFilter)
+                put("data_window_start", syncMetadata.dataWindowStart.toString())
             })
 
             if (healthData.steps.isNotEmpty()) {
@@ -566,5 +578,6 @@ private data class SyncMetadata(
     val start: Instant?,
     val end: Instant?,
     val intervalFullLookback: Boolean,
-    val usedLastSyncFilter: Boolean
+    val usedLastSyncFilter: Boolean,
+    val dataWindowStart: Instant
 )

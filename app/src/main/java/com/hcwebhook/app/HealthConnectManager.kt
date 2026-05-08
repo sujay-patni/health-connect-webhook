@@ -374,7 +374,10 @@ class HealthConnectManager(private val context: Context) {
         // Each StepsRecord (typically 1-15 min written by the phone pedometer)
         // carries its own startTime/endTime/count, so the receiver can bucket
         // by any logical-day boundary (e.g. day_start_hour=4) without losing
-        // the early-morning portion of a calendar day.
+        // the early-morning portion of a calendar day. Samsung Health also
+        // emits a 24-hour "Combined" daily aggregate; this layer just
+        // forwards everything HC returns and lets the receiver decide how
+        // to reconcile aggregates with bouts.
         val request = ReadRecordsRequest(
             recordType = StepsRecord::class,
             timeRangeFilter = TimeRangeFilter.between(startTime, endTime)
@@ -773,7 +776,7 @@ class HealthConnectManager(private val context: Context) {
     }
 
     companion object {
-        private const val LOOKBACK_HOURS = 48L
+        const val LOOKBACK_HOURS = 48L
 
         fun getPermissionsForTypes(
             types: Set<HealthDataType>,
